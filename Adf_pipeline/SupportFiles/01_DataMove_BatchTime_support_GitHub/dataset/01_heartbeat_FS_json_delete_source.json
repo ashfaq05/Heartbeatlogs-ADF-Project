@@ -1,0 +1,21 @@
+{
+    "name": "01_heartbeat_FS_json_delete_source",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "filesharetest",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "Json",
+        "typeProperties": {
+            "location": {
+                "type": "AzureFileStorageLocation",
+                "folderPath": {
+                    "value": "@concat('heartbeat/',formatDateTime(subtractFromTime(pipeline().TriggerTime,1,'Hour'), 'yyyy/M/dd/HH'))",
+                    "type": "Expression"
+                }
+            }
+        },
+        "schema": {}
+    }
+}

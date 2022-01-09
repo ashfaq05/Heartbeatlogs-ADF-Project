@@ -1,0 +1,17 @@
+{
+    "name": "01__FS_adfbatchdumps_binary_sink",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "filesharetest",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "Binary",
+        "typeProperties": {
+            "location": {
+                "type": "AzureFileStorageLocation",
+                "folderPath": "adfbatchdumps"
+            }
+        }
+    }
+}

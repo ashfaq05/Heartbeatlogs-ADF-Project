@@ -1,0 +1,28 @@
+{
+    "name": "01_Trigger-30Min-IST",
+    "properties": {
+        "annotations": [],
+        "runtimeState": "Stopped",
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "01_DataMove_BatchTime",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "Pipeline_Time": "60",
+                    "Batch_Size": "15"
+                }
+            }
+        ],
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Hour",
+                "interval": 1,
+                "startTime": "2021-12-27T18:30:00",
+                "timeZone": "India Standard Time"
+            }
+        }
+    }
+}

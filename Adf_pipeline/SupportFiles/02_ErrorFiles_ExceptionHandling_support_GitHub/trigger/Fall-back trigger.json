@@ -1,0 +1,29 @@
+{
+    "name": "Fall-back trigger",
+    "properties": {
+        "annotations": [],
+        "runtimeState": "Stopped",
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "03_FallBack_DataMove_BatchTime",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "Pipeline_Time": "180",
+                    "Batch_Size": "15",
+                    "Duration_Shift_Time": "60"
+                }
+            }
+        ],
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Hour",
+                "interval": 3,
+                "startTime": "2021-12-21T20:00:00",
+                "timeZone": "India Standard Time"
+            }
+        }
+    }
+}

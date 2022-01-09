@@ -1,0 +1,18 @@
+{
+    "name": "01_heartbeat_FS_json_delete_source2",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "filesharetest",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "Json",
+        "typeProperties": {
+            "location": {
+                "type": "AzureFileStorageLocation",
+                "folderPath": "heartbeat"
+            }
+        },
+        "schema": {}
+    }
+}

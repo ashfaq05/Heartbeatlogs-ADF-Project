@@ -1,0 +1,303 @@
+{
+    "name": "01_DataMove_BatchTime",
+    "properties": {
+        "activities": [
+            {
+                "name": "Batch_Time_Variable",
+                "description": "This activity would convert the batch size from positive value to negative value by multiplying it with -1 so that it takes the files from past -(15 minutes)",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Store_Trigger_Hour",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Batch_Time",
+                    "value": {
+                        "value": "@string(mul(int(pipeline().parameters.Batch_Size),-1))",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Loop_Until_Time_equals _Pipeline_Time",
+                "description": "This activity consists of set variable activity which would divide the pipeline time by batch size resulting in batch count along with start & end time of each btach",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "Batch_Time_Variable",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@less(int(pipeline().parameters.Pipeline_Time),mul(int(variables('Batch_Time')),-1))",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Batch_Array_variable",
+                            "type": "AppendVariable",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "Batch_Array",
+                                "value": {
+                                    "value": "@variables('Batch_Time')",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Batch_Time_Increment_variable",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Batch_Array_variable",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "Batch_Time_Increment",
+                                "value": {
+                                    "value": "@string(sub(int(variables('Batch_Time')),int(pipeline().parameters.Batch_Size)))",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Set_Batch_Time_variable",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Batch_Time_Increment_variable",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "Batch_Time",
+                                "value": {
+                                    "value": "@variables('Batch_Time_Increment')",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ],
+                    "timeout": "7.00:00:00"
+                }
+            },
+            {
+                "name": "Loop_Every_Batch",
+                "description": "This will take the run count from the previous activity & the sub activity will run accordingly that number of times.",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Loop_Until_Time_equals _Pipeline_Time",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@variables('Batch_Array')",
+                        "type": "Expression"
+                    },
+                    "isSequential": false,
+                    "activities": [
+                        {
+                            "name": "Copy_To_Destination_Blob",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 3,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "JsonSource",
+                                    "storeSettings": {
+                                        "type": "AzureFileStorageReadSettings",
+                                        "recursive": true,
+                                        "modifiedDatetimeStart": {
+                                            "value": "@addminutes(variables('Time_Path'),int(item()))",
+                                            "type": "Expression"
+                                        },
+                                        "modifiedDatetimeEnd": {
+                                            "value": "@addminutes(variables('Time_Path'),add(int(pipeline().parameters.Batch_Size),int(item())))",
+                                            "type": "Expression"
+                                        },
+                                        "wildcardFolderPath": {
+                                            "value": "@concat('heartbeat/',formatDateTime(subtractFromTime(pipeline().TriggerTime,1,'Hour'), 'yyyy/M/dd/HH'))",
+                                            "type": "Expression"
+                                        },
+                                        "wildcardFileName": "*.gz",
+                                        "enablePartitionDiscovery": false
+                                    },
+                                    "formatSettings": {
+                                        "type": "JsonReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "JsonSink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobStorageWriteSettings",
+                                        "copyBehavior": "PreserveHierarchy"
+                                    },
+                                    "formatSettings": {
+                                        "type": "JsonWriteSettings",
+                                        "filePattern": "setOfObjects"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "parallelCopies": 48,
+                                "enableSkipIncompatibleRow": true,
+                                "dataIntegrationUnits": 32
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "01_heartbeat_FS_json_source",
+                                    "type": "DatasetReference"
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "01_heartbeat_blob_json_sink",
+                                    "type": "DatasetReference"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Delete_From_Source_FileShare",
+                            "type": "Delete",
+                            "dependsOn": [
+                                {
+                                    "activity": "Copy_To_Destination_Blob",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 3,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "dataset": {
+                                    "referenceName": "01_heartbeat_FS_json_delete_source",
+                                    "type": "DatasetReference"
+                                },
+                                "enableLogging": false,
+                                "storeSettings": {
+                                    "type": "AzureFileStorageReadSettings",
+                                    "recursive": true,
+                                    "modifiedDatetimeStart": {
+                                        "value": "@addminutes(variables('Time_Path'),int(item()))",
+                                        "type": "Expression"
+                                    },
+                                    "modifiedDatetimeEnd": {
+                                        "value": "@addminutes(variables('Time_Path'),add(int(pipeline().parameters.Batch_Size),int(item())))",
+                                        "type": "Expression"
+                                    },
+                                    "wildcardFileName": "*.gz",
+                                    "enablePartitionDiscovery": false
+                                }
+                            }
+                        },
+                        {
+                            "name": "Execute_Custom_Pipeline",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [
+                                {
+                                    "activity": "Copy_To_Destination_Blob",
+                                    "dependencyConditions": [
+                                        "Failed"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "02_ErrorFiles_ExceptionHandling",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": false,
+                                "parameters": {
+                                    "Start_Time": {
+                                        "value": "@addminutes(variables('Time_Path'),int(item()))",
+                                        "type": "Expression"
+                                    },
+                                    "End_Time": {
+                                        "value": "@addminutes(variables('Time_Path'),add(int(pipeline().parameters.Batch_Size),int(item())))",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Store_Trigger_Hour",
+                "description": "It will take the hour of the trigger time excluding the minutes which is further passed in the copy activity.\nFor eg the trigger time is 11:10 it will take 11 as the hour for the copy activity ",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Time_Path",
+                    "value": {
+                        "value": "@concat(formatDateTime(pipeline().TriggerTime,'HH'),':00')",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "Pipeline_Time": {
+                "type": "string",
+                "defaultValue": "60"
+            },
+            "Batch_Size": {
+                "type": "string",
+                "defaultValue": "15"
+            }
+        },
+        "variables": {
+            "Batch_Array": {
+                "type": "Array"
+            },
+            "Batch_Time": {
+                "type": "String"
+            },
+            "Batch_Time_Increment": {
+                "type": "String"
+            },
+            "Time_Path": {
+                "type": "String"
+            }
+        },
+        "annotations": []
+    }
+}

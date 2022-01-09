@@ -1,0 +1,22 @@
+{
+    "now": "2021-12-28T12:39:18.095Z",
+    "perfNow": 166911.60000002384,
+    "diagnosticCorrelation": "c4454e48-7ef5-473f-8440-f4303182ee80",
+    "source": "DownloadSupportFiles",
+    "environment": {
+        "productName": "adf",
+        "buildVersion": "1.0.20211222.1",
+        "environmentType": 3,
+        "resourceName": "heartbeatmigratefiles2blobs",
+        "resourceRegion": "eastus2",
+        "resourceGroup": "en-prod-rg",
+        "subscriptionId": "b723e953-6f67-474e-8dae-13629c5d68e9",
+        "sessionId": "UpoO2",
+        "operationId": "ISV+s",
+        "gitType": "GitHub"
+    },
+    "additionalInfo": {
+        "selectedResource": "03_FallBack_DataMove_BatchTime",
+        "selectedResourceType": "pipeline"
+    }
+}

@@ -1,0 +1,385 @@
+{
+    "name": "02_ErrorFiles_ExceptionHandling",
+    "properties": {
+        "activities": [
+            {
+                "name": "Custom_Python_Errorlogs",
+                "type": "Custom",
+                "dependsOn": [
+                    {
+                        "activity": "Dumps_EndTime",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 3,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "command": "python3 main.py",
+                    "resourceLinkedService": {
+                        "referenceName": "blobstoragetest",
+                        "type": "LinkedServiceReference"
+                    },
+                    "folderPath": "script",
+                    "referenceObjects": {
+                        "linkedServices": [],
+                        "datasets": []
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "AzureBatchfreshpool_link",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Copy_To_Destination_Blob_2",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "Loop_Mover_ErrorFiles",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 3,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "JsonSource",
+                        "storeSettings": {
+                            "type": "AzureFileStorageReadSettings",
+                            "recursive": true,
+                            "modifiedDatetimeStart": {
+                                "value": "@variables('D_StartTime')",
+                                "type": "Expression"
+                            },
+                            "modifiedDatetimeEnd": {
+                                "value": "@variables('D_EndTime')",
+                                "type": "Expression"
+                            },
+                            "wildcardFolderPath": "adfbatchdumps",
+                            "wildcardFileName": "*",
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "JsonReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "JsonSink",
+                        "storeSettings": {
+                            "type": "AzureBlobStorageWriteSettings",
+                            "copyBehavior": "PreserveHierarchy"
+                        },
+                        "formatSettings": {
+                            "type": "JsonWriteSettings",
+                            "filePattern": "setOfObjects"
+                        }
+                    },
+                    "enableStaging": false,
+                    "parallelCopies": 48,
+                    "enableSkipIncompatibleRow": true,
+                    "dataIntegrationUnits": 32
+                },
+                "inputs": [
+                    {
+                        "referenceName": "02_adfbatchdumps_FS_json_source",
+                        "type": "DatasetReference"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "01_heartbeat_blob_json_sink2",
+                        "type": "DatasetReference"
+                    }
+                ]
+            },
+            {
+                "name": "Lookup_Json_ErrorFiles",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Custom_Python_Errorlogs",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 3,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "JsonSource",
+                        "storeSettings": {
+                            "type": "AzureFileStorageReadSettings",
+                            "recursive": true,
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "JsonReadSettings"
+                        }
+                    },
+                    "dataset": {
+                        "referenceName": "02__FS_jsonerrorlogs_source",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "Loop_Mover_ErrorFiles",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup_Json_ErrorFiles",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Lookup_Json_ErrorFiles').output.value",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Move_Error_Files",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 3,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "BinarySource",
+                                    "storeSettings": {
+                                        "type": "AzureFileStorageReadSettings",
+                                        "recursive": true,
+                                        "wildcardFolderPath": {
+                                            "value": "@item().file_path",
+                                            "type": "Expression"
+                                        },
+                                        "wildcardFileName": {
+                                            "value": "@item().file_name",
+                                            "type": "Expression"
+                                        },
+                                        "deleteFilesAfterCompletion": true
+                                    },
+                                    "formatSettings": {
+                                        "type": "BinaryReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "BinarySink",
+                                    "storeSettings": {
+                                        "type": "AzureFileStorageWriteSettings",
+                                        "copyBehavior": "PreserveHierarchy"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "parallelCopies": 48,
+                                "dataIntegrationUnits": 32
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "02__FS_adfbatchdumps_binary_source",
+                                    "type": "DatasetReference"
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "02__FS_error_binary_sink",
+                                    "type": "DatasetReference"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Copy_Batch_To_Dumps",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "Dumps_StartTime",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 3,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "BinarySource",
+                        "storeSettings": {
+                            "type": "AzureFileStorageReadSettings",
+                            "recursive": true,
+                            "modifiedDatetimeStart": {
+                                "value": "@pipeline().parameters.Start_Time",
+                                "type": "Expression"
+                            },
+                            "modifiedDatetimeEnd": {
+                                "value": "@pipeline().parameters.End_Time",
+                                "type": "Expression"
+                            },
+                            "wildcardFolderPath": "heartbeat",
+                            "wildcardFileName": "*",
+                            "deleteFilesAfterCompletion": true
+                        },
+                        "formatSettings": {
+                            "type": "BinaryReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "BinarySink",
+                        "storeSettings": {
+                            "type": "AzureFileStorageWriteSettings",
+                            "copyBehavior": "PreserveHierarchy"
+                        }
+                    },
+                    "enableStaging": false,
+                    "parallelCopies": 48,
+                    "dataIntegrationUnits": 32
+                },
+                "inputs": [
+                    {
+                        "referenceName": "01_heartbeat_FS_binary_source",
+                        "type": "DatasetReference"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "01__FS_adfbatchdumps_binary_sink",
+                        "type": "DatasetReference"
+                    }
+                ]
+            },
+            {
+                "name": "Delete_From_Source_ADFDumps_FileShare",
+                "type": "Delete",
+                "dependsOn": [
+                    {
+                        "activity": "Copy_To_Destination_Blob_2",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 3,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "02_adfbatchdumps_FS_json_source",
+                        "type": "DatasetReference"
+                    },
+                    "enableLogging": false,
+                    "storeSettings": {
+                        "type": "AzureFileStorageReadSettings",
+                        "recursive": true,
+                        "modifiedDatetimeStart": {
+                            "value": "@variables('D_StartTime')",
+                            "type": "Expression"
+                        },
+                        "modifiedDatetimeEnd": {
+                            "value": "@variables('D_EndTime')",
+                            "type": "Expression"
+                        },
+                        "wildcardFileName": "*.gz",
+                        "enablePartitionDiscovery": false
+                    }
+                }
+            },
+            {
+                "name": "Dumps_StartTime",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "D_StartTime",
+                    "value": {
+                        "value": "@utcnow()",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Dumps_EndTime",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Copy_Batch_To_Dumps",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "D_EndTime",
+                    "value": {
+                        "value": "@utcnow()",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "concurrency": 1,
+        "parameters": {
+            "Start_Time": {
+                "type": "string"
+            },
+            "End_Time": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "D_StartTime": {
+                "type": "String"
+            },
+            "D_EndTime": {
+                "type": "String"
+            }
+        },
+        "annotations": []
+    }
+}

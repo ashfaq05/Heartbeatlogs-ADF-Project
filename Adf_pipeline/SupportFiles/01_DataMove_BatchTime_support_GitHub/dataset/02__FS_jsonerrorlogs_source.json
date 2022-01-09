@@ -1,0 +1,19 @@
+{
+    "name": "02__FS_jsonerrorlogs_source",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "filesharetest",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "Json",
+        "typeProperties": {
+            "location": {
+                "type": "AzureFileStorageLocation",
+                "fileName": "ErrorLogs.json",
+                "folderPath": "jsonerrorlogs"
+            }
+        },
+        "schema": {}
+    }
+}

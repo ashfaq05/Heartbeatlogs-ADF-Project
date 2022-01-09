@@ -1,0 +1,56 @@
+{
+    "name": "01_heartbeat_blob_json_sink",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "blobstoragetest",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "Json",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobStorageLocation",
+                "folderPath": {
+                    "value": "@concat('heartbeat/',formatDateTime(subtractFromTime(pipeline().TriggerTime,1,'Hour'), 'yyyy/M/dd/HH'))",
+                    "type": "Expression"
+                },
+                "container": "heartbeat"
+            }
+        },
+        "schema": {
+            "type": "object",
+            "properties": {
+                "message_id": {
+                    "type": "string"
+                },
+                "event_group": {
+                    "type": "string"
+                },
+                "event_name": {
+                    "type": "string"
+                },
+                "asset_id": {
+                    "type": "string"
+                },
+                "content_id": {
+                    "type": "string"
+                },
+                "content_type_id": {
+                    "type": "string"
+                },
+                "subtitle": {
+                    "type": "string"
+                },
+                "progress": {
+                    "type": "string"
+                },
+                "video_Session_id": {
+                    "type": "string"
+                },
+                "random_key": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

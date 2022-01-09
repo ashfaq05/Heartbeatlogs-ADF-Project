@@ -1,0 +1,17 @@
+{
+    "name": "02__FS_error_binary_sink",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "filesharetest",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "Binary",
+        "typeProperties": {
+            "location": {
+                "type": "AzureFileStorageLocation",
+                "folderPath": "error"
+            }
+        }
+    }
+}
