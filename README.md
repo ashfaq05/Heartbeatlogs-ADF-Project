@@ -13,7 +13,7 @@ if some log file is corrupted Due to network failure Data factory is not able to
 
 Solution :
 - I have Built a  pipeline with will move data in batches of 15 min each.
-- we have used a custom activity in our pipr=eline with will run a python code to detected those corrupted .gz Files and move that file in error Folder
+- we have used a custom activity in our pipeline with will run a python code to detected those corrupted .gz Files and move that file in error Folder
 
 Conclusion :
 In total, we have Created 4 Pipeline 
